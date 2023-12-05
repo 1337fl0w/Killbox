@@ -1,5 +1,8 @@
 extends CharacterBody3D
 
+@onready var neck = $Neck
+@onready var head = $Neck/Head
+
 # Movement
 const MAX_VELOCITY_AIR = 0.6
 const MAX_VELOCITY_GROUND = 6.0
@@ -10,9 +13,20 @@ const JUMP_IMPULSE = sqrt(2 * GRAVITY * 0.85)
 const PLAYER_WALKING_MULTIPLIER = 0.666
 
 var direction = Vector3()
+var lerp_speed = 10.0
 var friction = 4
 var wish_jump
 var walking = false
+var sliding = false
+
+# Slide vars
+var slideTimer = 0.0
+var slideTimerMax = 1.0
+var slideCooldown = false
+var slideCooldownTimer = 0.0
+var slideCooldownTimerMax = 1.5
+var slideVector = Vector2.ZERO
+var crouchingDepth = -1
 
 # Camera
 var sensitivity = 0.05
@@ -30,21 +44,23 @@ func _input(event):
 	# Camera rotation
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		_handle_camera_rotation(event)
-	
+
 func _handle_camera_rotation(event: InputEvent):
 	# Rotate the camera based on the mouse movement
 	rotate_y(deg_to_rad(-event.relative.x * sensitivity))
-	$Head.rotate_x(deg_to_rad(-event.relative.y * sensitivity))
+	head.rotate_x(deg_to_rad(-event.relative.y * sensitivity))
 	
 	# Stop the head from rotating to far up or down
-	$Head.rotation.x = clamp($Head.rotation.x, deg_to_rad(-90), deg_to_rad(90))
-	
+	head.rotation.x = clamp(head.rotation.x, deg_to_rad(-90), deg_to_rad(90))
+
 func _physics_process(delta):
-	process_input()
+	process_input(delta)
 	process_movement(delta)
 	
-func process_input():
-	direction = Vector3()
+func process_input(delta):
+	# Getting movement input
+	var input_dir = Input.get_vector("left", "right", "forward", "backward")
+	direction = transform.basis * Vector3(input_dir.x, 0, input_dir.y)
 	
 	# Movement directions
 	if Input.is_action_pressed("forward"):
@@ -62,6 +78,39 @@ func process_input():
 	# Walking
 	walking = Input.is_action_pressed("walk")
 	
+	# Sliding
+	if input_dir != Vector2.ZERO && Input.is_action_just_pressed("slide") && !slideCooldown:
+		sliding = true
+		slideTimer = slideTimerMax
+		slideVector = input_dir
+		print("slide begin")
+	
+	# Handle slide cooldown
+	if !sliding && slideCooldown:
+		slideCooldownTimer -= delta
+		neck.position.y = lerp(neck.position.y, 1.8, delta * lerp_speed)
+		if slideCooldownTimer <= 0:
+			slideCooldown = false
+			print("cooldown end")
+			
+	# Handle sliding
+	if sliding:
+		slideTimer -= delta
+		slideCooldownTimer = slideCooldownTimerMax
+		slideCooldown = true
+		neck.position.y = lerp(neck.position.y, 1.8 + crouchingDepth, delta * lerp_speed)
+		direction = (transform.basis * Vector3(slideVector.x, 0, slideVector.y)).normalized()
+		if direction:
+			velocity.x = direction.x * (slideTimer + 0.5) * 12
+			velocity.z = direction.z * (slideTimer + 0.5) * 12
+		if slideTimer <= 0:
+			sliding = false
+		if wish_jump || walking || Input.is_action_pressed("backward") || slideTimer <= 0:
+				sliding = false
+				slideCooldown = true
+	
+	
+
 func process_movement(delta):
 	# Get the normalized input direction so that we don't move faster on diagonals
 	var wish_dir = direction.normalized()
