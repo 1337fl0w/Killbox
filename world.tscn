@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3 uid="uid://cu5v2oy7jh1xr"]
+
+[ext_resource type="PackedScene" uid="uid://data1b7w664t8" path="res://player.tscn" id="1_pw4k8"]
+[ext_resource type="Material" uid="uid://bq8t1dtju2gsl" path="res://Materials/DarkWallGridMaterial.tres" id="1_sjwg3"]
+[ext_resource type="Texture2D" uid="uid://d00evek2jnusb" path="res://Textures/PNG/Green/texture_01.png" id="2_yynhp"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_napxu"]
+albedo_texture = ExtResource("2_yynhp")
+uv1_triplanar = true
+uv2_world_triplanar = true
+
+[node name="World" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.766044, 0.642788, 0, -0.642788, 0.766044, 0, 3.5, 8)
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0, -0.25, 0)
+size = Vector3(64, 1, 64)
+material = ExtResource("1_sjwg3")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.09313, 1.28287, -0.337258)
+size = Vector3(4.77246, 1, 1)
+material = SubResource("StandardMaterial3D_napxu")
+
+[node name="Player" parent="." instance=ExtResource("1_pw4k8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
